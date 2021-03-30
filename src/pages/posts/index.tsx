@@ -1,11 +1,22 @@
 import { GetStaticProps } from 'next';
 import Head from 'next/head';
 import Prismic from '@prismicio/client';
+import { RichText } from 'prismic-dom';
 import { getPrismicClient } from '../../services/prismic';
 
 import styles from './styles.module.scss';
 
-export default function Posts() {
+type Post = {
+  slug: string;
+  title: string;
+  excerpt: string;
+  updatedAt: string;
+}
+interface PostsProps {
+  posts: Post[];
+}
+
+export default function Posts({ posts }: PostsProps) {
   return (
     <>
       <Head>
@@ -14,21 +25,13 @@ export default function Posts() {
 
       <main className={styles.container}>
         <div className={styles.posts}>
-          <a href="#">
-            <time>29 March 2021</time>
-            <strong>What is a PWA (Progressive Web App)?</strong>
-            <p>A PWA is a hybrid application between web and mobile. Imagine that when you access a website that you really like on your smartphone, you receive a warning to add the website to your application homepage.</p>
+          {posts.map(post => (
+            <a key={post.slug} href="#">
+            <time>{post.updatedAt}</time>
+            <strong>{post.title}</strong>
+            <p>{post.excerpt}</p>
           </a>
-          <a href="#">
-            <time>29 March 2021</time>
-            <strong>What is a PWA (Progressive Web App)?</strong>
-            <p>A PWA is a hybrid application between web and mobile. Imagine that when you access a website that you really like on your smartphone, you receive a warning to add the website to your application homepage.</p>
-          </a>
-          <a href="#">
-            <time>29 March 2021</time>
-            <strong>What is a PWA (Progressive Web App)?</strong>
-            <p>A PWA is a hybrid application between web and mobile. Imagine that when you access a website that you really like on your smartphone, you receive a warning to add the website to your application homepage.</p>
-          </a>x
+          ))}
         </div>
       </main>
     </>
@@ -45,9 +48,23 @@ export const getStaticProps: GetStaticProps = async () => {
     pageSize: 100, 
   });
 
-  console.log(JSON.stringify(response, null, 2));
+  const posts = response.results.map(post => {
+    return {
+      slug: post.uid,
+      title: RichText.asText(post.data.title),
+      excerpt: post.data.content.find(content => 
+        content.type === 'paragraph')?.text ?? '',
+        updatedAt: new Date(post.last_publication_date).toLocaleDateString('en-AU', {
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric',
+        })
+    }
+  });
 
   return { 
-    props: {}
+    props: {
+      posts
+    }
   }
 }
